@@ -1,10 +1,6 @@
-import math
-
 import numpy as np
-
 from aiida import orm
 from aiida.engine import WorkChain, if_
-
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
@@ -73,11 +69,9 @@ class QeAppWannier90BandsWorkChain(WorkChain):
     ):
         """Return a BandsWorkChain builder prepopulated with inputs following the specified protocol
 
+        :param codes: the codes required by the workchain.
         :param structure: the ``StructureData`` instance to use.
-        :param codes: the ``Code`` instance configured for the ``quantumespresso.pw`` plugin.
         :param protocol: protocol to use, if not specified, the default will be used.
-        :param projwfc_code: the ``Code`` instance configured for the ``quantumespresso.projwfc`` plugin.
-        :param simulation_mode: hat type of simulation to run normal band or fat bands.
 
         """
 
@@ -151,6 +145,9 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             overrides = self.inputs.overrides.get('wannier90_bands', {})
         else:
             overrides = {}
+        wannier90_parameters = overrides.pop('wannier90_parameters', {})
+        number_of_disproj_max = wannier90_parameters.pop('number_of_disproj_max', 15)
+        number_of_disproj_min = wannier90_parameters.pop('number_of_disproj_min', 2)
         kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
         codes = {key: value for key, value in self.inputs.codes.items()}
         builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
@@ -162,6 +159,8 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             overrides=overrides,
             **kwargs,
         )
+        builder.optimize_disprojmax_range = orm.List(list=list(np.linspace(0.99, 0.85, number_of_disproj_max)))
+        builder.optimize_disprojmin_range = orm.List(list=list(np.linspace(0.01, 0.15, number_of_disproj_min)))
         builder.pop('scf')
         builder.nscf.pw.parent_folder = parent_folder
         if 'parallelization' in self.inputs:
@@ -238,11 +237,14 @@ class QeAppWannier90BandsWorkChain(WorkChain):
                     atoms = read(filepath)
                     try:
                         nx, ny, nz, origin, lattice_vectors, density_array = read_xsf_density(filepath)
-                        isovalue = find_isovalue(density_array)
+                        isovalue = abs(find_isovalue(density_array))
                         verts, faces = compute_isosurface(density_array, isovalue, origin, lattice_vectors)
+                        verts_neg, faces_neg = compute_isosurface(density_array, -isovalue, origin, lattice_vectors)
                         # the verts is in a nx, ny, nz grid, we need to transform it to fractional coordinates
                         # then to cartesian coordinates using the lattice vectors
-                        results[filename[:-4]] = {'isovalue': isovalue, 'isosurface': {'vertices': verts, 'faces': faces}}
+                        results[filename[:-4]] = {'isovalue': isovalue,
+                                                  'positive': {'vertices': verts, 'faces': faces},
+                                                  'negative': {'vertices': verts_neg, 'faces': faces_neg}}
                     except Exception as e:
                         results[filename[:-4]] = {'error': f'Failed to process file {filename}'}
             return results
@@ -250,8 +252,10 @@ class QeAppWannier90BandsWorkChain(WorkChain):
         workchain = self.ctx['wannier90_bands']
         inputs = prepare_pythonjob_inputs(
             process_xsf_files,
+            code = self.inputs.codes['python'],
             function_outputs=[{'name': 'isosurface'}],
             parent_folder=workchain.outputs.wannier90_plot.remote_folder,
+            computer=workchain.inputs.wannier90.wannier90.code.computer,
         )
         node = self.submit(PythonJob, **inputs)
         self.report(f'submitting `PythonJob` <PK={node.pk}>')

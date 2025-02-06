@@ -37,6 +37,11 @@ class ResourceSettingsModel(PluginResourceSettingsModel):
                     description='wannier90.x',
                     default_calc_job_plugin='wannier90.wannier90',
                 ),
+                'python': CodeModel(
+                    name='python',
+                    description='Python code for isosurface calculation',
+                    default_calc_job_plugin='pythonjob.pythonjob',
+                ),
 
             }
         )

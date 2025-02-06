@@ -21,7 +21,8 @@ classifiers = [
 ]
 dependencies = [
   'aiida-core>=2.3',
-  'aiida-quantumespresso>=4.5'
+  'aiida-quantumespresso>=4.8',
+  'aiida-pythonjob'
 ]
 dynamic = ['description', 'version']
 keywords = ['aiida', 'workflows', 'core-level', 'spectroscopy']

@@ -14,6 +14,10 @@ import numpy as np
 # Define a threshold for considering atoms "almost equally distant"
 DISTANCE_THRESHOLD = 0.01
 
+ISOSURFACE_COLOR = {
+    'positive': [1.0, 1.0, 0.0, 0.8],
+    'negative': [0.0, 1.0, 1.0, 0.8],
+}
 
 class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
 
@@ -126,21 +130,19 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         self.structure_viewer.avr.selected_atoms_indices = indices.tolist()
         key = f'aiida_{int(id):05d}'
         isosurface = self.all_isosurface[key]
-        if 'isosurface' in isosurface:
-            vertices = isosurface['isosurface']['vertices']
-            vertices = [item for sublist in vertices for item in sublist]
-            faces = isosurface['isosurface']['faces']
-            faces = [item for sublist in faces for item in sublist]
-            data = [
-                {
-                    'name': key,
-                    'color': [0.0, 1.0, 0.0, 0.8],
-                    'material': 'Standard',
-                    'position': [0, 0.0, 0.0],
-                    'vertices': vertices,
-                    'faces': faces,
-                },
-            ]
-            self.structure_viewer.any_mesh.settings = data
-        else:
-            self.structure_viewer.any_mesh.settings = []
+        data = []
+        if 'isovalue' in isosurface:
+            for item in ['positive', 'negative']:
+                vertices = isosurface[item]['vertices']
+                vertices = [item for sublist in vertices for item in sublist]
+                faces = isosurface[item]['faces']
+                faces = [item for sublist in faces for item in sublist]
+                data.append({
+                        'name': item,
+                        'color': ISOSURFACE_COLOR[item],
+                        'material': 'Standard',
+                        'position': [0, 0.0, 0.0],
+                        'vertices': vertices,
+                        'faces': faces,
+                    })
+        self.structure_viewer.any_mesh.settings = data

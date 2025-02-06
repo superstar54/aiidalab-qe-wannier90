@@ -1,27 +1,9 @@
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 from .wannier90_workchain import QeAppWannier90BandsWorkChain
 
-def check_codes(pw_code, pw2wannier90_code, projwfc_code, wannier90_code):
+def check_codes(codes):
     """Check that the codes are installed on the same computer."""
-    if (
-        not any(
-            [
-                pw_code is None,
-                pw2wannier90_code is None,
-                projwfc_code is None,
-                wannier90_code is None,
-            ]
-        )
-        and len(
-            {
-                pw_code.computer.pk,
-                pw2wannier90_code.computer.pk,
-                projwfc_code.computer.pk,
-                wannier90_code.computer.pk,
-            }
-        )
-        != 1
-    ):
+    if (len({code.computer.pk for code in codes.values()})!= 1):
         raise ValueError(
             'All selected codes must be installed on the same computer. This is because the '
             'calculations rely on large files that are not retrieved by AiiDA.'
@@ -31,38 +13,42 @@ def check_codes(pw_code, pw2wannier90_code, projwfc_code, wannier90_code):
 def get_builder(codes, structure, parameters, **kwargs):
     from copy import deepcopy
 
-    pw_code = codes.get('pw')['code']
-    pw2wannier90_code = codes.get('pw2wannier90')['code']
-    projwfc_code = codes.get('projwfc')['code']
-    wannier90_code = codes.get('wannier90')['code']
-    check_codes(pw_code, pw2wannier90_code, projwfc_code, wannier90_code)
-    protocol = parameters['workchain']['protocol']
-
-    scf_overrides = deepcopy(parameters['advanced'])
-    nscf_overrides = deepcopy(parameters['advanced'])
     wannier90_parameters = deepcopy(parameters['wannier90'])
+    exclude_semicore=wannier90_parameters.pop('exclude_semicore')
+    plot_wannier_functions=wannier90_parameters.pop('plot_wannier_functions')
 
+    all_codes = {
+                'pw': codes.get('pw')['code'],
+                'pw2wannier90': codes.get('pw2wannier90')['code'],
+                'projwfc': codes.get('projwfc')['code'],
+                'wannier90': codes.get('wannier90')['code'],
+            }
+    if plot_wannier_functions:
+        all_codes['python'] = codes.get('python')['code']
+    check_codes(all_codes)
+    protocol = parameters['workchain']['protocol']
     overrides = {
-        'nscf': nscf_overrides,
-        'scf': scf_overrides,
+        'pw_bands': {
+            'scf': deepcopy(parameters['advanced']),
+            'bands': deepcopy(parameters['advanced']),
+        },
+        'wannier90_bands': {
+            'nscf': deepcopy(parameters['advanced']),
+            'wannier90_parameters': wannier90_parameters,
+        },
     }
     parallelization = {
         'num_machines': codes['pw']['nodes'],
         'num_mpiprocs_per_machine': codes['pw']['ntasks_per_node'],
     }
     builder = QeAppWannier90BandsWorkChain.get_builder_from_protocol(
-        codes={
-                'pw': pw_code,
-                'pw2wannier90': pw2wannier90_code,
-                'projwfc': projwfc_code,
-                'wannier90': wannier90_code
-            },
+        codes=all_codes,
         structure=structure,
         protocol=protocol,
         overrides=overrides,
         parallelization=parallelization,
-        exclude_semicore=wannier90_parameters['exclude_semicore'],
-        plot_wannier_functions=wannier90_parameters['plot_wannier_functions'],
+        exclude_semicore=exclude_semicore,
+        plot_wannier_functions=plot_wannier_functions,
         electronic_type=ElectronicType(parameters['workchain']['electronic_type']),
         spin_type=SpinType(parameters['workchain']['spin_type']),
         initial_magnetic_moments=parameters['advanced']['initial_magnetic_moments'],
