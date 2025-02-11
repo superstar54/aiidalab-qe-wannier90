@@ -27,7 +27,10 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
 
         # Retrieve band structures
         pw_bands, wannier90_bands = self._model.get_bands_node()
-        model = BandsPdosModel(bands=pw_bands, wannier90_bands=wannier90_bands)
+        wannier90_bands['plot_settings'] = {'dash': 'dash'}
+        model = BandsPdosModel(bands = pw_bands,
+                               external_bands = {'wannier90_bands': wannier90_bands}
+                            )
 
         # Create and render the bands/PDOS widget
         bands_widget = BandsPdosWidget(model=model)

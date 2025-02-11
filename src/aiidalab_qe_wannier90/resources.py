@@ -50,4 +50,4 @@ class ResourceSettingsModel(PluginResourceSettingsModel):
 class ResourceSettingsPanel(
     PluginResourceSettingsPanel[ResourceSettingsModel],
 ):
-    """Panel for configuring the pdos plugin."""
+    """Panel for configuring the wannier90 plugin."""

@@ -1,5 +1,6 @@
 from aiida_quantumespresso.common.types import ElectronicType, SpinType
 from .wannier90_workchain import QeAppWannier90BandsWorkChain
+from aiida_wannier90_workflows.common.types import WannierProjectionType, WannierFrozenType
 
 def check_codes(codes):
     """Check that the codes are installed on the same computer."""
@@ -16,6 +17,10 @@ def get_builder(codes, structure, parameters, **kwargs):
     wannier90_parameters = deepcopy(parameters['wannier90'])
     exclude_semicore=wannier90_parameters.pop('exclude_semicore')
     plot_wannier_functions=wannier90_parameters.pop('plot_wannier_functions')
+    retrieve_hamiltonian=wannier90_parameters.pop('retrieve_hamiltonian')
+    retrieve_matrices=wannier90_parameters.pop('retrieve_matrices')
+    projection_type=wannier90_parameters.pop('projection_type')
+    frozen_type=wannier90_parameters.pop('frozen_type')
 
     all_codes = {
                 'pw': codes.get('pw')['code'],
@@ -52,6 +57,10 @@ def get_builder(codes, structure, parameters, **kwargs):
         electronic_type=ElectronicType(parameters['workchain']['electronic_type']),
         spin_type=SpinType(parameters['workchain']['spin_type']),
         initial_magnetic_moments=parameters['advanced']['initial_magnetic_moments'],
+        projection_type=WannierProjectionType(projection_type),
+        frozen_type=WannierFrozenType(frozen_type),
+        retrieve_hamiltonian=retrieve_hamiltonian,
+        retrieve_matrices=retrieve_matrices,
         **kwargs,
     )
     return builder

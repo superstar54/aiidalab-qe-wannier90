@@ -1,5 +1,4 @@
 import traitlets as tl
-from aiida_quantumespresso.workflows.pdos import PdosWorkChain
 from aiidalab_qe.common.mixins import HasInputStructure
 from aiidalab_qe.common.panel import ConfigurationSettingsModel
 
@@ -11,22 +10,26 @@ class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
     dependencies = [
         'input_structure',
         'workchain.protocol',
+        'workchain.electronic_type',
     ]
     exclude_semicore = tl.Bool(allow_none=True, default_value=True)
     plot_wannier_functions = tl.Bool(allow_none=True, default_value=False)
     number_of_disproj_max = tl.Int(allow_none=True, default_value=15)
     number_of_disproj_min = tl.Int(allow_none=True, default_value=2)
-    compute_hamiltonian = tl.Bool(allow_none=True, default_value=True)
+    retrieve_hamiltonian = tl.Bool(allow_none=True, default_value=True)
+    retrieve_matrices = tl.Bool(allow_none=True, default_value=False)
     projection_type = tl.Unicode(allow_none=True, default_value='atomic_projectors_qe')
     frozen_type = tl.Unicode(allow_none=True, default_value='fixed_plus_projectability')
 
     protocol = tl.Unicode(allow_none=True)
+    electronic_type = tl.Unicode(allow_none=True)
 
     def get_model_state(self):
         return {
             'exclude_semicore': self.exclude_semicore,
             'plot_wannier_functions': self.plot_wannier_functions,
-            'compute_hamiltonian': self.compute_hamiltonian,
+            'retrieve_hamiltonian': self.retrieve_hamiltonian,
+            'retrieve_matrices': self.retrieve_matrices,
             'number_of_disproj_max': self.number_of_disproj_max,
             'number_of_disproj_min': self.number_of_disproj_min,
             'projection_type': self.projection_type,

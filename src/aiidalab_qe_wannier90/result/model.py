@@ -12,6 +12,7 @@ class Wannier90ResultsModel(ResultsModel):
     wannier_centers_spreads = tl.Dict(allow_none=True)
     omega_is = tl.List(allow_none=True)
     omega_tots = tl.List(allow_none=True)
+    im_re_ratio = tl.List(allow_none=True)
     wannier90_outputs = tl.Dict(allow_none=True)
 
     _this_process_label = 'QeAppWannier90BandsWorkChain'
@@ -53,6 +54,11 @@ class Wannier90ResultsModel(ResultsModel):
             {'field': 'spreads_initial', 'headerName': 'Spreads initial', 'editable': False},
             {'field': 'centers_initial', 'headerName': 'Centers initial', 'editable': False, 'width': 200,},
         ]
+        if 'wannier90_plot' in node.outputs.wannier90.wannier90_bands:
+            plot_parameters = node.outputs.wannier90.wannier90_bands.wannier90_plot.output_parameters.get_dict()
+            columns.append({'field': 'im_re_ratio', 'headerName': 'Im_re_ratio', 'editable': False})
+        else:
+            plot_parameters = None
         centers_spreads = {'columns': columns,
                            'data': []}
         for i in range(len(outputs['wannier_functions_initial'])):
@@ -64,6 +70,9 @@ class Wannier90ResultsModel(ResultsModel):
                 'centers_initial': str(outputs['wannier_functions_initial'][i]['wf_centres']),
             }
             centers_spreads['data'].append(data)
+            if plot_parameters:
+                data['im_re_ratio'] = plot_parameters['wannier_functions_output'][i]['im_re_ratio']
+
         return centers_spreads
 
     def get_bands_node(self):
