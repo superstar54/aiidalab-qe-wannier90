@@ -8,7 +8,7 @@ from .result import Wannier90ResultsPanel, Wannier90ResultsModel
 
 
 class PluginOutline(PluginOutline):
-    title = 'Wannier90'
+    title = 'Wannier functions'
 
 
 wannier90 = {

@@ -10,7 +10,7 @@ from aiidalab_qe.common.panel import (
 class ResourceSettingsModel(PluginResourceSettingsModel):
     """Model for the wannier90 code setting plugin."""
 
-    title = 'Wannier90'
+    title = 'Wannier functions'
     identifier = 'wannier90'
 
     def __init__(self, **kwargs):

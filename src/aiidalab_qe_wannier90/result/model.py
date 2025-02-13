@@ -5,7 +5,7 @@ from aiida import orm
 import time
 
 class Wannier90ResultsModel(ResultsModel):
-    title = 'Wannier90'
+    title = 'Wannier functions'
     identifier = 'wannier90'
     structure = tl.Instance(orm.StructureData, allow_none=True)
     bands_distance = tl.Float(allow_none=True)

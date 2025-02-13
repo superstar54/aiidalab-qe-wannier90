@@ -4,7 +4,7 @@ from aiidalab_qe.common.panel import ConfigurationSettingsModel
 
 
 class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
-    title = 'Wannier90'
+    title = 'Wannier functions'
     identifier = 'wannier90'
 
     dependencies = [

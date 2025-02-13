@@ -8,10 +8,10 @@ A plugin for running Wannier calculations inside the AiiDAlab Quantum ESPRESSO A
 - With predefined protocols (`moderate`, `precise`, `fast`).
 - **Optional real-space Wannier functions** (3D visualization) with the atomic structure.
 
-<img src="docs/source/_static/images/bands.png"  width="800px"/>
+<img src="docs/source/_static/images/overview.png"  width="800px"/>
 
 
-<img src="docs/source/_static/images/qeapp-wannier90-wf.gif"  width="100%"/>
+<!-- <img src="docs/source/_static/images/qeapp-wannier90-wf.gif"  width="100%"/> -->
 
 
 ## Usage
