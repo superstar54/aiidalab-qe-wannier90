@@ -20,7 +20,7 @@ class Wannier90ResultsModel(ResultsModel):
     def fetch_result(self):
         tstart = time.time()
         root = self.fetch_process_node()
-        self.structure = root.inputs.wannier90.structure
+        self.structure = root.outputs.wannier90.pw_bands.primitive_structure
         self.bands_distance = root.outputs.wannier90.wannier90_bands.bands_distance.value
         data = root.outputs.wannier90.wannier90_bands.wannier90_optimal.output_parameters.get_dict()
         self.wannier90_outputs = {key: data[key] for key in ['number_wfs', 'Omega_D', 'Omega_I', 'Omega_OD']}
