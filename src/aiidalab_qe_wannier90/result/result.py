@@ -27,9 +27,12 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
 
         # Retrieve band structures
         pw_bands, wannier90_bands = self._model.get_bands_node()
-        wannier90_bands['plot_settings'] = {'dash': 'dash'}
+        wannier90_bands['trace_settings'] = {'dash': 'dash',
+                                             'shape': 'linear',
+                                             'color': 'red'}
         model = BandsPdosModel(bands = pw_bands,
-                               external_bands = {'wannier90_bands': wannier90_bands}
+                               external_bands = {'Wannier-interpolated bands': wannier90_bands},
+                               plot_settings = {'bands_trace_settings': {'name': 'DFT Bands'}},
                             )
 
         # Create and render the bands/PDOS widget
@@ -39,41 +42,55 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         # Wannier90 outputs summary (merged with bands distance)
         wannier90_outputs = self._model.wannier90_outputs
         bands_distance = self._model.bands_distance
+        omega_tot = wannier90_outputs['Omega_D'] + wannier90_outputs['Omega_I'] + wannier90_outputs['Omega_OD']
 
         wannier90_outputs_parameters = ipw.HTML(
             f"""
-            <div style="margin-top:10px; padding:10px; border:1px solid #ddd; border-radius:5px;">
-                <table style="width:100%; border-collapse:collapse;">
-                    <tr>
-                        <td><b>Number of WFs:</b> {wannier90_outputs['number_wfs']}</td>
-                        <td><b>Ω<sub>D</sub>:</b> {wannier90_outputs['Omega_D']}</td>
-                        <td><b>Ω<sub>I</sub>:</b> {wannier90_outputs['Omega_I']}</td>
-                        <td><b>Ω<sub>OD</sub>:</b> {wannier90_outputs['Omega_OD']}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="4"><b>Band Distance:</b> {bands_distance} eV (Good if ≤ 0.03 eV)</td>
-                    </tr>
-                </table>
+            <div style="margin-top:10px; padding:15px;">
+            <table style="width:60%; border-collapse:collapse; text-align:left; font-size:14px;">
+                <tr>
+                <td><b>Number of WFs:</b></td>
+                <td>{wannier90_outputs['number_wfs']}</td>
+                </tr>
+                <tr>
+                <td><b>Total spread Ω<sub>tot</sub>:</b></td>
+                <td>{omega_tot:.3f} Å²</td>
+                </tr>
+
+                <tr>
+                <td><b>Components of the spread:</b></td>
+                <td>Ω<sub>D</sub>: {wannier90_outputs['Omega_D']:.3f} Å² &nbsp;&nbsp;
+                    Ω<sub>I</sub>: {wannier90_outputs['Omega_I']:.3f} Å² &nbsp;&nbsp;
+                    Ω<sub>OD</sub>: {wannier90_outputs['Omega_OD']:.3f} Å²
+                </td>
+                </tr>
+
+                <tr>
+                <td><b>Band Distance:</b></td>
+                <td>{bands_distance * 1000:.3f} meV</td>
+                </tr>
+            </table>
             </div>
             """
         )
+
 
         # Omega convergence plot
         omega_is = self._model.omega_is
         fig = px.line(
             x=range(len(omega_is)), y=omega_is,
-            title='Convergence of Omega_I vs Number of Iterations'
+            title='Convergence of Ωᵢ'
         )
-        fig.update_yaxes(title='Omega_I')
+        fig.update_yaxes(title='Ωᵢ')
         fig.update_xaxes(title='Number of iterations')
         self.plot_omega_is = go.FigureWidget(fig)
         #
         omega_tots = self._model.omega_tots
         fig = px.line(
             x=range(len(omega_tots)), y=omega_tots,
-            title='Convergence of Omega_TOT vs Number of Iterations'
+            title='Convergence of Ωₜₒₜ'
         )
-        fig.update_yaxes(title='Omega_TOT')
+        fig.update_yaxes(title='Ωₜₒₜ')
         fig.update_xaxes(title='Number of iterations')
         self.plot_omega_tots = go.FigureWidget(fig)
 
@@ -100,8 +117,10 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         )
 
         self.table.observe(self.on_single_row_select, 'selectedRowId')
+        self.table_description = ipw.HTML('Click on a table row to visualize on the right the corresponding Wannier function in real space.')
         table_section = ipw.VBox([
             ipw.HTML('<h3>Wannier centers/spreads</h3>'),
+            self.table_description,
             self.table
         ], layout=ipw.Layout(margin='10px 0'))
 
@@ -111,11 +130,11 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         # Arrange components in the panel
         self.children = [
             ipw.VBox([
-                ipw.HTML('<h2>Bands structure</h2>'),
+                ipw.HTML('<h2>DFT and Wannier-interpolated electronic band structure</h2>'),
                 bands_widget,
             ]),
             ipw.VBox([
-                ipw.HTML('<h2>Wannier90 summary</h2>'),
+                ipw.HTML('<h2>Wannierization details</h2>'),
                 wannier90_outputs_parameters,
                 ipw.HBox([self.plot_omega_is, self.plot_omega_tots]),
                 ipw.HBox([structure_viewer_section, table_section]),

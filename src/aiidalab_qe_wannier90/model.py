@@ -22,6 +22,7 @@ class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
     retrieve_matrices = tl.Bool(allow_none=True, default_value=False)
     projection_type = tl.Unicode(allow_none=True, default_value='atomic_projectors_qe')
     frozen_type = tl.Unicode(allow_none=True, default_value='fixed_plus_projectability')
+    energy_window_input = tl.Float(allow_none=True, default_value=2.0)
 
     protocol = tl.Unicode(allow_none=True)
     electronic_type = tl.Unicode(allow_none=True)
@@ -36,6 +37,7 @@ class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
             'number_of_disproj_min': self.number_of_disproj_min,
             'projection_type': self.projection_type,
             'frozen_type': self.frozen_type,
+            'energy_window_input': self.energy_window_input,
         }
 
     def set_model_state(self, parameters: dict):

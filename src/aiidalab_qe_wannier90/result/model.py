@@ -45,10 +45,10 @@ class Wannier90ResultsModel(ResultsModel):
         outputs = node.outputs.wannier90.wannier90_bands.wannier90_optimal.output_parameters.get_dict()
         columns = [
             {'field': 'id', 'headerName': 'WF', 'editable': False},
-            {'field': 'spreads_final', 'headerName': 'Spreads final', 'editable': False},
-            {'field': 'centers_final', 'headerName': 'Centers final', 'editable': False, 'width': 200,},
-            {'field': 'spreads_initial', 'headerName': 'Spreads initial', 'editable': False},
-            {'field': 'centers_initial', 'headerName': 'Centers initial', 'editable': False, 'width': 200,},
+            {'field': 'spreads_initial', 'headerName': 'Initial spread (first iteration) (Å2)', 'editable': False, 'width': 130,},
+            {'field': 'spreads_final', 'headerName': 'Final spread (Å2)', 'editable': False, 'width': 130,},
+            {'field': 'centers_final', 'headerName': 'Centers final (Å)', 'editable': False, 'width': 180,},
+            {'field': 'centers_initial', 'headerName': 'Centers initial (Å)', 'editable': False, 'width': 180,},
         ]
         if 'wannier90_plot' in node.outputs.wannier90.wannier90_bands:
             plot_parameters = node.outputs.wannier90.wannier90_bands.wannier90_plot.output_parameters.get_dict()
@@ -60,11 +60,12 @@ class Wannier90ResultsModel(ResultsModel):
         for i in range(len(outputs['wannier_functions_initial'])):
             data = {
                 'id': i + 1,
-                'spreads_final': outputs['wannier_functions_output'][i]['wf_spreads'],
-                'centers_final': str(outputs['wannier_functions_output'][i]['wf_centres']),
-                'spreads_initial': outputs['wannier_functions_initial'][i]['wf_spreads'],
-                'centers_initial': str(outputs['wannier_functions_initial'][i]['wf_centres']),
+                'spreads_initial': round(outputs['wannier_functions_initial'][i]['wf_spreads'], 3),
+                'spreads_final': round(outputs['wannier_functions_output'][i]['wf_spreads'], 3),
+                'centers_initial': '[' + ', '.join(f'{x:.4f}' for x in outputs['wannier_functions_initial'][i]['wf_centres']) + ']',
+                'centers_final': '[' + ', '.join(f'{x:.4f}' for x in outputs['wannier_functions_output'][i]['wf_centres']) + ']',
             }
+
             centers_spreads['data'].append(data)
             if plot_parameters:
                 data['im_re_ratio'] = plot_parameters['wannier_functions_output'][i]['im_re_ratio']
