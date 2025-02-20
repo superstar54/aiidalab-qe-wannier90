@@ -25,19 +25,27 @@ def process_xsf_files(folder: str = 'parent_folder'):
             raise ValueError(f'Mismatch in density data size: expected {expected_size}, got {actual_size}')
         density_array = np.array(density_data).reshape((nz, ny, nx), order='F')
         return nx, ny, nz, origin, lattice_vectors, density_array
+
     def find_isovalue(density_array, percentile=90):
+        """Find the isovalue for the isosurface by taking the 90th percentile of the density values """
         return np.percentile(density_array, percentile)
-    def compute_isosurface(density_array, isovalue, origin, lattice_vectors):
-        verts, faces, _, _ = measure.marching_cubes(density_array, level=isovalue)
+
+    def compute_isosurface(density_array, isovalue, origin, lattice_vectors, step_size=1):
+        verts, faces, _, _ = measure.marching_cubes(density_array, level=isovalue, step_size=step_size)
         # Convert vertices from grid to Cartesian coordinates
         cartesian_verts = np.dot((verts / np.array(density_array.shape)), lattice_vectors) + origin
+        # flatten the vertices and faces
+        cartesian_verts = cartesian_verts.flatten()
+        faces = faces.flatten()
         return cartesian_verts, faces
 
-    results = {}
+    parameters = {}
+    mesh_data = {}
     for filename in os.listdir(folder):
         if filename.endswith('.xsf'):
             filepath = os.path.join(folder, filename)
             atoms = read(filepath)
+            key = filename[:-4]
             try:
                 nx, ny, nz, origin, lattice_vectors, density_array = read_xsf_density(filepath)
                 isovalue = abs(find_isovalue(density_array))
@@ -45,9 +53,13 @@ def process_xsf_files(folder: str = 'parent_folder'):
                 verts_neg, faces_neg = compute_isosurface(density_array, -isovalue, origin, lattice_vectors)
                 # the verts is in a nx, ny, nz grid, we need to transform it to fractional coordinates
                 # then to cartesian coordinates using the lattice vectors
-                results[filename[:-4]] = {'isovalue': isovalue,
-                                          'positive': {'vertices': verts, 'faces': faces},
-                                          'negative': {'vertices': verts_neg, 'faces': faces_neg}}
+                parameters[key] = {'isovalue': isovalue}
+                mesh_data[f'{key}_positive_vertices'] = verts
+                mesh_data[f'{key}_positive_faces'] = faces
+                mesh_data[f'{key}_negative_vertices'] = verts_neg
+                mesh_data[f'{key}_negative_faces'] = faces_neg
             except Exception as e:
-                results[filename[:-4]] = {'error': f'Failed to process file {filename}'}
-    return results
+                parameters[key] = {'error': f'Failed to process file {filename}'}
+    return {'atoms': atoms,
+            'parameters': parameters,
+            'mesh_data': mesh_data}

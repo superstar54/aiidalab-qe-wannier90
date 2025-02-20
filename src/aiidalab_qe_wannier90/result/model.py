@@ -18,7 +18,6 @@ class Wannier90ResultsModel(ResultsModel):
     _this_process_label = 'QeAppWannier90BandsWorkChain'
 
     def fetch_result(self):
-        tstart = time.time()
         root = self.fetch_process_node()
         self.structure = root.outputs.wannier90.pw_bands.primitive_structure
         self.bands_distance = root.outputs.wannier90.wannier90_bands.bands_distance.value
@@ -27,10 +26,8 @@ class Wannier90ResultsModel(ResultsModel):
         # Wannier centers/spreads
         self.wannier_centers_spreads = self.get_wannier_centers_spreads(root)
         self.omega_is, self.omega_tots = self.get_omega(root)
-        print(f'fetch_result took {time.time() - tstart} seconds')
 
     def get_omega(self, root):
-        tstart = time.time()
         omega_is = []
         omega_tots = []
         with root.outputs.wannier90.wannier90_bands.wannier90_optimal.retrieved.open('aiida.wout') as f:
@@ -42,7 +39,6 @@ class Wannier90ResultsModel(ResultsModel):
                 if '<-- SPRD' in line:
                     omega_tot = float(line.split('O_TOT=')[1].split('<-- SPRD')[0])
                     omega_tots.append(omega_tot)
-        print(f'get_omega took {time.time() - tstart} seconds')
         return omega_is, omega_tots
 
     def get_wannier_centers_spreads(self, node):
@@ -85,10 +81,11 @@ class Wannier90ResultsModel(ResultsModel):
         return pw_bands, wannier90_bands
 
     def get_isosurface(self) -> dict:
-        tstart = time.time()
         outputs = self._get_child_outputs()
-        if 'plot_wf' not in outputs:
+        if 'generate_isosurface' not in outputs:
             return None
-        data = outputs.plot_wf.get_dict()
-        print(f'get_isosurface took {time.time() - tstart} seconds')
-        return data
+        atoms = outputs.generate_isosurface.atoms.value
+        parameters = outputs.generate_isosurface.parameters.get_dict()
+        mesh_data = outputs.generate_isosurface.mesh_data
+
+        return {'atoms': atoms, 'parameters': parameters, 'mesh_data': mesh_data}

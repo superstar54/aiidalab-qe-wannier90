@@ -46,6 +46,3 @@ validate the installation by running the following command:
 ## Isosurface
 
 I used PythonJob to calculate the isosurface of the wannier function, and save the mesh data as AiiDA output node, then visualize the isosurface using the `weas-widget`. This avoids the need to download and save the large density file.
-
-- density file (xsf format), 9.2 Mb
-- mesh data, 0.00026 Mb

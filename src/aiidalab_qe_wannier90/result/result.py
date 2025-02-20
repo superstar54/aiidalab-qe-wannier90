@@ -85,7 +85,7 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         self.structure_viewer.avr.color_type = 'VESTA'
         self.structure_viewer.avr.boundary = [[-0.05, 1.05], [-0.05, 1.05], [-0.05, 1.05]]
         # isosurface
-        self.all_isosurface = self._model.get_isosurface()
+        self.isosurface_data = self._model.get_isosurface()
 
         structure_viewer_section = ipw.VBox([
             ipw.HTML('<h3>Structure</h3>'),
@@ -135,14 +135,11 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         indices = np.where(np.abs(distances - min_distance) < DISTANCE_THRESHOLD)[0]
         self.structure_viewer.avr.selected_atoms_indices = indices.tolist()
         key = f'aiida_{int(id):05d}'
-        isosurface = self.all_isosurface[key]
         data = []
-        if 'isovalue' in isosurface:
+        if 'isovalue' in self.isosurface_data['parameters'][key]:
             for item in ['positive', 'negative']:
-                vertices = isosurface[item]['vertices']
-                vertices = [item for sublist in vertices for item in sublist]
-                faces = isosurface[item]['faces']
-                faces = [item for sublist in faces for item in sublist]
+                vertices = self.isosurface_data['mesh_data'][f'{key}_{item}_vertices'].value.tolist()
+                faces = self.isosurface_data['mesh_data'][f'{key}_{item}_faces'].value.tolist()
                 data.append({
                         'name': item,
                         'color': ISOSURFACE_COLOR[item],

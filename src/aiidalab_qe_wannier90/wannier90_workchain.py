@@ -37,16 +37,16 @@ class QeAppWannier90BandsWorkChain(WorkChain):
                 'help': 'Outputs of the `Wannier90OptimizeWorkChain`.',
             },
         )
-        spec.output('plot_wf', required=False)
+        spec.output_namespace('generate_isosurface', required=False, dynamic=True)
 
         spec.outline(cls.setup,
                      cls.run_bands,
                      cls.inspect_pw_bands,
                      cls.run_optimize,
                      cls.inspect_optimize,
-                     if_(cls.should_run_plot_wf)(
-                         cls.plot_wf,
-                         cls.inspect_plot_wf
+                     if_(cls.should_run_generate_isosurface)(
+                         cls.generate_isosurface,
+                         cls.inspect_generate_isosurface
                      ),
                      )
 
@@ -186,33 +186,38 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             )
             self.report('Optimize workchain completed successfully')
 
-    def should_run_plot_wf(self):
+    def should_run_generate_isosurface(self):
         kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
         return kwargs.get('plot_wannier_functions', False)
 
-    def plot_wf(self):
+    def generate_isosurface(self):
         """Plot the results"""
 
         workchain = self.ctx['wannier90_bands']
         inputs = prepare_pythonjob_inputs(
             process_xsf_files,
             code = self.inputs.codes['python'],
-            function_outputs=[{'name': 'isosurface'}],
+            function_outputs=[{'name': 'atoms'},
+                      {'name': 'parameters'},
+                      {'name': 'mesh_data', 'identifier': 'namespace'},
+                      ],
             parent_folder=workchain.outputs.wannier90_plot.remote_folder,
             computer=workchain.inputs.wannier90.wannier90.code.computer,
             register_pickle_by_value=True,
         )
         node = self.submit(PythonJob, **inputs)
         self.report(f'submitting `PythonJob` <PK={node.pk}>')
-        self.to_context(**{'plot_wf': node})
+        self.to_context(**{'generate_isosurface': node})
 
-    def inspect_plot_wf(self):
-        """Inspect the results of the plot_wf"""
-        workchain = self.ctx['plot_wf']
+    def inspect_generate_isosurface(self):
+        """Inspect the results of the generate_isosurface"""
+        workchain = self.ctx['generate_isosurface']
 
         if not workchain.is_finished_ok:
             self.report('Plot workchain failed')
             return self.exit_codes.ERROR_WORKCHAIN_FAILED
         else:
-            self.out('plot_wf', workchain.outputs.isosurface)
-            self.report('Plot workchain completed successfully')
+            self.out('generate_isosurface.atoms', workchain.outputs.atoms)
+            self.out('generate_isosurface.parameters', workchain.outputs.parameters)
+            self.out('generate_isosurface.mesh_data', workchain.outputs.mesh_data)
+            self.report('Plot wf completed successfully')
