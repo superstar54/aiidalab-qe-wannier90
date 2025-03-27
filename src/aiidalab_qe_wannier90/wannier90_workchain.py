@@ -197,7 +197,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
         inputs = prepare_pythonjob_inputs(
             process_xsf_files,
             code = self.inputs.codes['python'],
-            function_outputs=[{'name': 'atoms'},
+            output_ports=[{'name': 'atoms'},
                       {'name': 'parameters'},
                       {'name': 'mesh_data', 'identifier': 'namespace'},
                       ],
