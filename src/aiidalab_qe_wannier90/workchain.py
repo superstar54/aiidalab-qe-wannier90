@@ -32,6 +32,11 @@ def get_builder(codes, structure, parameters, **kwargs):
         all_codes['python'] = codes.get('python')['code']
     check_codes(all_codes)
     protocol = parameters['workchain']['protocol']
+    protocol_map = {
+        'balanced': 'moderate',
+        'stringent': 'precise'
+    }
+    protocol = protocol_map.get(protocol, protocol)
     overrides = {
         'pw_bands': {
             'scf': deepcopy(parameters['advanced']),
