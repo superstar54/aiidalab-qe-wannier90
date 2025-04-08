@@ -107,7 +107,8 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         structure_viewer_section = ipw.VBox([
             ipw.HTML('<h3>Structure</h3>'),
             self.structure_viewer,
-        ], layout=ipw.Layout(margin='10px 0'))
+        ], layout=ipw.Layout(width='50%',
+            margin='10px 0'))
 
         # Wannier centers/spreads table
         self.table = TableWidget(style={'margin-top': '10px'})
@@ -122,7 +123,8 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
             ipw.HTML('<h3>Wannier centers/spreads</h3>'),
             self.table_description,
             self.table
-        ], layout=ipw.Layout(margin='10px 0'))
+        ], layout=ipw.Layout(width='50%',
+            margin='10px 0'))
 
 
 
