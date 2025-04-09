@@ -17,31 +17,6 @@ A plugin for running Wannier calculations inside the AiiDAlab Quantum ESPRESSO A
 ## Usage
 Run Wannier calculations via the AiiDAlab QE App GUI.
 
-## PythonJob code
-To setup the `python` code for isosurface calculation, you need to install the following packages in the Python environment:
-
-```
-cloudpickle
-scikit-image
-ase
-```
-
-Here is an example configuration file to setup the `python` code on HPC:
-
-```yaml
----
-label: python3
-description: python3.9.10 at Merlin 7
-default_calc_job_plugin: pythonjob.pythonjob
-filepath_executable: /opt/psi/Programming/Python/3.9.10/bin/python
-prepend_text: |
-    module purge
-    module load Python/3.9.10
-append_text: ''
-```
-
-
-
 
 ## Compile Wanntier90
 
@@ -70,3 +45,32 @@ validate the installation by running the following command:
 ## Isosurface
 
 I used PythonJob to calculate the isosurface of the wannier function, and save the mesh data as AiiDA output node, then visualize the isosurface using the `weas-widget`. This avoids the need to download and save the large density file.
+
+
+### Set up PythonJob code
+To setup the `python` code for isosurface calculation, you need to install the following packages in the Python environment:
+
+```
+cloudpickle
+scikit-image
+ase
+```
+
+Then one can use `verdi` command create the `pythonjob` code. Here is an example configuration file to setup the `pythonjob` code:
+
+```yaml
+---
+label: python3
+description: python3.9.10 at Merlin 7
+default_calc_job_plugin: pythonjob.pythonjob
+filepath_executable: /opt/psi/Programming/Python/3.9.10/bin/python
+prepend_text: |
+    module purge
+    module load Python/3.9.10
+append_text: ''
+```
+Run the fowlling command to create the `pythonjob` code in your AiiDA profile:
+
+```
+verdi code create core.code.installed --config pythonjob-code.yaml
+```
