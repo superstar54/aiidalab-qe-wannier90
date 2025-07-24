@@ -21,15 +21,22 @@ def get_builder(codes, structure, parameters, **kwargs):
     retrieve_matrices=wannier90_parameters.pop('retrieve_matrices')
     projection_type=wannier90_parameters.pop('projection_type')
     frozen_type=wannier90_parameters.pop('frozen_type')
+    compute_fermi_surface=wannier90_parameters.pop('compute_fermi_surface')
+    fermi_surface_kpoint_distance=wannier90_parameters.pop('fermi_surface_kpoint_distance', False)
+    compute_dhva_frequencies=wannier90_parameters.pop('compute_dhva_frequencies', False)
+    dHvA_frequencies_parameters = wannier90_parameters.pop('dHvA_frequencies_parameters', None)
 
     all_codes = {
                 'pw': codes.get('pw')['code'],
                 'pw2wannier90': codes.get('pw2wannier90')['code'],
                 'projwfc': codes.get('projwfc')['code'],
-                'wannier90': codes.get('wannier90')['code'],
+                'wannier90': codes.get('wannier90')['code']
             }
     if plot_wannier_functions:
         all_codes['python'] = codes.get('python')['code']
+    if compute_dhva_frequencies:
+        all_codes['skeaf'] = codes.get('skeaf')['code']
+        all_codes['wan2skeaf'] = codes.get('wan2skeaf')['code']
     check_codes(all_codes)
     protocol = parameters['workchain']['protocol']
     protocol_map = {
@@ -66,6 +73,10 @@ def get_builder(codes, structure, parameters, **kwargs):
         frozen_type=WannierFrozenType(frozen_type),
         retrieve_hamiltonian=retrieve_hamiltonian,
         retrieve_matrices=retrieve_matrices,
+        compute_fermi_surface=compute_fermi_surface,
+        fermi_surface_kpoint_distance=fermi_surface_kpoint_distance,
+        compute_dhva_frequencies=compute_dhva_frequencies,
+        dHvA_frequencies_parameters=dHvA_frequencies_parameters,
         **kwargs,
     )
     return builder

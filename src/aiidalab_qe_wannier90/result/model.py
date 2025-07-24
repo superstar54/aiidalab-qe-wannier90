@@ -2,7 +2,6 @@ from aiidalab_qe.common.panel import ResultsModel
 from aiida.common.extendeddicts import AttributeDict
 import traitlets as tl
 from aiida import orm
-import time
 
 class Wannier90ResultsModel(ResultsModel):
     title = 'Wannier functions'
@@ -14,6 +13,7 @@ class Wannier90ResultsModel(ResultsModel):
     omega_tots = tl.List(allow_none=True)
     im_re_ratio = tl.List(allow_none=True)
     wannier90_outputs = tl.Dict(allow_none=True)
+    retrieved = tl.Instance(orm.FolderData, allow_none=True)
 
     _this_process_label = 'QeAppWannier90BandsWorkChain'
 
@@ -26,6 +26,10 @@ class Wannier90ResultsModel(ResultsModel):
         # Wannier centers/spreads
         self.wannier_centers_spreads = self.get_wannier_centers_spreads(root)
         self.omega_is, self.omega_tots = self.get_omega(root)
+        if 'wannier90_plot' in root.outputs.wannier90.wannier90_bands:
+            self.retrieved = root.outputs.wannier90.wannier90_bands.wannier90_plot.retrieved
+        else:
+            self.retrieved = root.outputs.wannier90.wannier90_bands.wannier90_optimal.retrieved
 
     def get_omega(self, root):
         omega_is = []
@@ -90,3 +94,13 @@ class Wannier90ResultsModel(ResultsModel):
         mesh_data = outputs.generate_isosurface.mesh_data
 
         return {'atoms': atoms, 'parameters': parameters, 'mesh_data': mesh_data}
+
+    def get_skeaf(self) -> dict:
+        outputs = self._get_child_outputs()
+        if 'skeaf' not in outputs:
+            return None
+        skeaf_results = {}
+        for band in outputs.skeaf.skeaf:
+            frequency = outputs.skeaf.skeaf[band].frequency
+            skeaf_results[band] = frequency
+        return skeaf_results

@@ -4,6 +4,7 @@ from aiida.engine import WorkChain, if_
 from aiida_wannier90_workflows.workflows.bands import Wannier90BandsWorkChain
 from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkChain
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
+from aiida_skeaf.workflows import SkeafWorkChain
 from aiida_wannier90_workflows.utils.workflows.builder.setter import set_parallelization
 from aiida_pythonjob.launch import prepare_pythonjob_inputs
 from aiida_pythonjob import PythonJob
@@ -37,6 +38,14 @@ class QeAppWannier90BandsWorkChain(WorkChain):
                 'help': 'Outputs of the `Wannier90OptimizeWorkChain`.',
             },
         )
+        spec.expose_outputs(
+            SkeafWorkChain,
+            namespace='skeaf',
+            namespace_options={
+                'required': False,
+                'help': 'Outputs of the `SkeafWorkChain`.',
+            },
+        )
         spec.output_namespace('generate_isosurface', required=False, dynamic=True)
 
         spec.outline(cls.setup,
@@ -48,6 +57,10 @@ class QeAppWannier90BandsWorkChain(WorkChain):
                          cls.generate_isosurface,
                          cls.inspect_generate_isosurface
                      ),
+                     if_(cls.should_run_skeaf)(
+                         cls.run_skeaf,
+                         cls.inspect_skeaf
+                        ),
                      )
 
         spec.exit_code(
@@ -148,7 +161,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
         wannier90_parameters = overrides.pop('wannier90_parameters', {})
         number_of_disproj_max = wannier90_parameters.pop('number_of_disproj_max', 15)
         number_of_disproj_min = wannier90_parameters.pop('number_of_disproj_min', 2)
-        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
+        kwargs_filtered = {k: v for k, v in self.inputs.kwargs.items() if k not in ['compute_dhva_frequencies','dHvA_frequencies_parameters']}
         codes = {key: value for key, value in self.inputs.codes.items()}
         builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
             codes = codes,
@@ -157,7 +170,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             reference_bands=reference_bands,
             bands_kpoints=bands_kpoints,
             overrides=overrides,
-            **kwargs,
+            **kwargs_filtered,
         )
         builder.optimize_disprojmax_range = orm.List(list=list(np.linspace(0.99, 0.85, number_of_disproj_max)))
         builder.optimize_disprojmin_range = orm.List(list=list(np.linspace(0.01, 0.15, number_of_disproj_min)))
@@ -221,3 +234,66 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             self.out('generate_isosurface.parameters', workchain.outputs.parameters)
             self.out('generate_isosurface.mesh_data', workchain.outputs.mesh_data)
             self.report('Plot wf completed successfully')
+
+    def should_run_skeaf(self):
+        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
+        return kwargs.get('compute_dhva_frequencies', False)
+
+    def run_skeaf(self):
+        """Run the `SkeafWorkChain` to compute the dHvA frequencies"""
+        from aiida_wannier90_workflows.utils.pseudo import get_number_of_electrons
+        if 'overrides' in self.inputs:
+            overrides = self.inputs.overrides.get('skeaf', {})
+        else:
+            overrides = {}
+        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
+        wannier_node = self.ctx.wannier90_bands
+        try:
+            wannier_calc = wannier_node.outputs.wannier90_plot.output_parameters.creator
+        except AttributeError:
+            wannier_calc =  wannier_node.outputs.wannier90_optimal.output_parameters.creator
+        parent_folder = wannier_calc.outputs.remote_folder
+        pseudos = self.inputs.overrides.pw_bands['scf']['pw']['pseudos']
+        structure = wannier_calc.inputs.structure
+        num_excl_bands = wannier_calc.inputs.parameters.get('exclude_bands', [])
+        num_elec_pw = get_number_of_electrons(structure, pseudos)
+        num_electrons = num_elec_pw - 2 * len(num_excl_bands)
+        if abs(num_electrons - int(num_electrons)) > 1e-5:
+            raise ValueError('Non-integer number of electrons?')
+        num_electrons = int(num_electrons)
+
+        code_labels = ['wan2skeaf', 'skeaf']
+
+        codes = {label: self.inputs.codes[label] for label in code_labels}
+
+        builder = SkeafWorkChain.get_builder_from_protocol(
+        codes=codes,
+        bxsf=parent_folder,
+        num_electrons=num_electrons,
+        protocol=self.inputs.protocol.value,
+        )
+
+        skeaf_params = builder.skeaf.parameters.get_dict()
+        skeaf_params.update(
+            kwargs.get('dHvA_frequencies_parameters', {}),
+        )
+        builder.skeaf.parameters = orm.Dict(skeaf_params)
+
+        node = self.submit(builder)
+        self.report(f'submitting `WorkChain` <PK={node.pk}>')
+        self.to_context(**{'skeaf': node})
+
+    def inspect_skeaf(self):
+        """Attach the skeaf results"""
+        workchain = self.ctx['skeaf']
+
+        if not workchain.is_finished_ok:
+            self.report('SKEAF workchain failed')
+            return self.exit_codes.ERROR_WORKCHAIN_FAILED
+        else:
+            self.out_many(
+                self.exposed_outputs(
+                    self.ctx['skeaf'], SkeafWorkChain, namespace='skeaf'
+                )
+            )
+            self.report('SKEAF workchain completed successfully')

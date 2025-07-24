@@ -42,6 +42,16 @@ class ResourceSettingsModel(PluginResourceSettingsModel):
                     description='Python code for isosurface calculation',
                     default_calc_job_plugin='pythonjob.pythonjob',
                 ),
+                'skeaf': CodeModel(
+                    name='skeaf_v1p3p0_r149',
+                    description='skeaf_v1p3p0_r149',
+                    default_calc_job_plugin='skeaf.skeaf',
+                ),
+                'wan2skeaf': CodeModel(
+                    name='wan2skeaf.jl',
+                    description='wan2skeaf.jl',
+                    default_calc_job_plugin='skeaf.wan2skeaf',
+                ),
 
             }
         )

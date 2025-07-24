@@ -4,6 +4,7 @@ from aiidalab_qe.common.bands_pdos import BandsPdosModel, BandsPdosWidget
 from aiidalab_qe.common.panel import ResultsPanel
 import ipywidgets as ipw
 from .model import Wannier90ResultsModel
+from .utils import create_download_link, plot_skeaf
 from table_widget import TableWidget
 import plotly.graph_objs as go
 import plotly.express as px
@@ -126,7 +127,24 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         ], layout=ipw.Layout(width='50%',
             margin='10px 0'))
 
+        # de Haas van Alphen (dHvA) frequencies
+        skeaf_data = self._model.get_skeaf() # skeaf_data is a dictionary {band: frequency_array}
+        self.plot_skeaf = plot_skeaf(skeaf_data)
 
+        # Downloads section
+        download_links = []
+
+        for filename in self._model.retrieved.list_object_names():
+            if filename.endswith('_tb.dat'):
+                # Create a download link for the .tb.dat file
+                temp_dir = self._model.retrieved
+                download_links.append(create_download_link(
+                    temp_dir, filename, description=f'Download the tight-binding model {filename}'))
+            elif filename.endswith('.bxsf'):
+                # Create a download link for the .bxsf file
+                temp_dir = self._model.retrieved
+                download_links.append(create_download_link(
+                    temp_dir, filename, description=f'Download the Fermi surface {filename}'))
 
 
         # Arrange components in the panel
@@ -140,6 +158,15 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
                 wannier90_outputs_parameters,
                 ipw.HBox([self.plot_omega_is, self.plot_omega_tots]),
                 ipw.HBox([structure_viewer_section, table_section]),
+            ]),
+            ipw.VBox([
+                ipw.HTML('<h2>Fermi surface</h2>'),
+                ipw.HTML('<h3>de Haas van Alphen (dHva) frequencies</h3>'),
+                ipw.HBox([self.plot_skeaf,]),
+            ]),
+            ipw.VBox([
+                ipw.HTML('<h2>Download files</h2>'),
+                ipw.VBox(download_links),
             ]),
         ]
 
