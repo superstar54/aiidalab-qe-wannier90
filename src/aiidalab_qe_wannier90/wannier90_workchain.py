@@ -8,7 +8,7 @@ from aiida_skeaf.workflows import SkeafWorkChain
 from aiida_wannier90_workflows.utils.workflows.builder.setter import set_parallelization
 from aiida_pythonjob.launch import prepare_pythonjob_inputs
 from aiida_pythonjob import PythonJob
-from .utils import process_xsf_files
+from .utils import process_cube_files
 class QeAppWannier90BandsWorkChain(WorkChain):
     """Workchain to run a bands calculation with Quantum ESPRESSO and Wannier90."""
 
@@ -209,15 +209,13 @@ class QeAppWannier90BandsWorkChain(WorkChain):
 
     def generate_isosurface(self):
         """Plot the results"""
+        from aiida_pythonjob import spec
 
         workchain = self.ctx['wannier90_bands']
         inputs = prepare_pythonjob_inputs(
-            process_xsf_files,
+            process_cube_files,
             code = self.inputs.codes['python'],
-            output_ports=[{'name': 'atoms'},
-                      {'name': 'parameters'},
-                      {'name': 'mesh_data', 'identifier': 'namespace'},
-                      ],
+            outputs_spec=spec.namespace(atoms=any, parameters=dict, mesh_data=spec.dynamic(any)),
             parent_folder=workchain.outputs.wannier90_plot.remote_folder,
             computer=workchain.inputs.wannier90.wannier90.code.computer,
             register_pickle_by_value=True,
