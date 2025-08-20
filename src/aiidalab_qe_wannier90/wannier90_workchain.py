@@ -102,7 +102,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
 
     def setup(self):
         """Define the current workchain"""
-        pass
+        self.ctx.kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
 
     def run_bands(self):
         """Run the bands workchain"""
@@ -158,6 +158,11 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             overrides = self.inputs.overrides.get('wannier90_bands', {})
         else:
             overrides = {}
+        # set up plotting wannier functions if requested
+        overrides.setdefault('wannier90', {})
+        overrides['wannier90'].setdefault('wannier90', {})
+        overrides['wannier90']['wannier90']['wannier_plot_format'] = 'cube'
+        overrides['wannier90']['wannier90']['bands_plot'] = self.ctx.kwargs.get('plot_wannier_functions', False)
         wannier90_parameters = overrides.pop('wannier90_parameters', {})
         number_of_disproj_max = wannier90_parameters.pop('number_of_disproj_max', 15)
         number_of_disproj_min = wannier90_parameters.pop('number_of_disproj_min', 2)
@@ -200,8 +205,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             self.report('Optimize workchain completed successfully')
 
     def should_run_generate_isosurface(self):
-        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
-        return kwargs.get('plot_wannier_functions', False)
+        return self.ctx.kwargs.get('plot_wannier_functions', False)
 
     def generate_isosurface(self):
         """Plot the results"""
@@ -236,8 +240,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             self.report('Plot wf completed successfully')
 
     def should_run_skeaf(self):
-        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
-        return kwargs.get('compute_dhva_frequencies', False)
+        return self.ctx.kwargs.get('compute_dhva_frequencies', False)
 
     def run_skeaf(self):
         """Run the `SkeafWorkChain` to compute the dHvA frequencies"""
