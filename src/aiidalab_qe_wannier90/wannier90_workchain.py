@@ -166,7 +166,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
         wannier90_parameters = overrides.pop('wannier90_parameters', {})
         scan_pdwf_parameter = wannier90_parameters.pop('scan_pdwf_parameter', False)
         if scan_pdwf_parameter:
-            number_of_disproj_max = 2
+            number_of_disproj_max = 15
             number_of_disproj_min = 2
         else:
             number_of_disproj_max = 1
