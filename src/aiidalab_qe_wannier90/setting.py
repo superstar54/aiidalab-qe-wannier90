@@ -87,6 +87,18 @@ class ConfigurationSettingPanel(
             (self._model, 'retrieve_matrices'),
             (self.retrieve_matrices, 'value'),
         )
+        self.scan_pdwf_parameter = ipw.Checkbox(
+            value=self._model.scan_pdwf_parameter,
+            description='Exhaustive PDWF parameter scan',
+            style={'description_width': 'initial'},
+            tooltip='If enabled, an exhaustive scan of the PDWF thresholds is ' \
+            'performed (up to 30 Wannierizations) to find those that bring the ' \
+            'bands distance (for bands up to 2 eV above the Fermi level) below 10 meV.',
+        )
+        ipw.link(
+            (self._model, 'scan_pdwf_parameter'),
+            (self.scan_pdwf_parameter, 'value'),
+        )
         self.plot_wannier_functions = ipw.Checkbox(
             value=self._model.plot_wannier_functions,
             description='Compute real-space Wannier functions',
@@ -329,8 +341,7 @@ class ConfigurationSettingPanel(
             self.algorithm_description,
             self.projection_selection_widget,
             self.frozen_states_widget,
-            # self.number_of_disproj_max,
-            # self.number_of_disproj_min,
+            self.scan_pdwf_parameter,
         ]
         self.rendered = True
 
