@@ -127,9 +127,19 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         ], layout=ipw.Layout(width='50%',
             margin='10px 0'))
 
+        self.skeaf_container = ipw.VBox([
+                ipw.HTML('<h2>Fermi surface</h2>'),
+                ipw.HTML('<h3>de Haas van Alphen (dHva) frequencies</h3>'),
+            ])
+
         # de Haas van Alphen (dHvA) frequencies
         skeaf_data = self._model.get_skeaf() # skeaf_data is a dictionary {band: frequency_array}
-        self.plot_skeaf = plot_skeaf(skeaf_data)
+        if skeaf_data is not None:
+            self.plot_skeaf = plot_skeaf(skeaf_data)
+            self.skeaf_container.children += (self.plot_skeaf,)
+        else:
+            # hide the skeaf container if no data is available
+            self.skeaf_container.layout.display = 'none'
 
         # Downloads section
         download_links = []
@@ -159,11 +169,7 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
                 ipw.HBox([self.plot_omega_is, self.plot_omega_tots]),
                 ipw.HBox([structure_viewer_section, table_section]),
             ]),
-            ipw.VBox([
-                ipw.HTML('<h2>Fermi surface</h2>'),
-                ipw.HTML('<h3>de Haas van Alphen (dHva) frequencies</h3>'),
-                ipw.HBox([self.plot_skeaf,]),
-            ]),
+            self.skeaf_container,
             ipw.VBox([
                 ipw.HTML('<h2>Download files</h2>'),
                 ipw.VBox(download_links),
