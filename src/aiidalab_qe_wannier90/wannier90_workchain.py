@@ -159,9 +159,14 @@ class QeAppWannier90BandsWorkChain(WorkChain):
         else:
             overrides = {}
         wannier90_parameters = overrides.pop('wannier90_parameters', {})
-        number_of_disproj_max = wannier90_parameters.pop('number_of_disproj_max', 15)
-        number_of_disproj_min = wannier90_parameters.pop('number_of_disproj_min', 2)
-        kwargs_filtered = {k: v for k, v in self.inputs.kwargs.items() if k not in ['compute_dhva_frequencies','dHvA_frequencies_parameters']}
+        scan_pdwf_parameter = wannier90_parameters.pop('scan_pdwf_parameter', False)
+        if scan_pdwf_parameter:
+            number_of_disproj_max = 15
+            number_of_disproj_min = 2
+        else:
+            number_of_disproj_max = 1
+            number_of_disproj_min = 1
+        kwargs_filtered = {k: v for k, v in self.inputs.kwargs.items() if k not in ['compute_fermi_surface', 'fermi_surface_kpoint_distance', 'compute_dhva_frequencies','dHvA_frequencies_parameters']}
         codes = {key: value for key, value in self.inputs.codes.items()}
         builder = Wannier90OptimizeWorkChain.get_builder_from_protocol(
             codes = codes,

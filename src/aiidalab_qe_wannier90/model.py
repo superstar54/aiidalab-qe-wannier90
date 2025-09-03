@@ -15,6 +15,7 @@ class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
     # by default: exclude semicore orbitals in both methods, since these low-energy states correspond
     # to almost flat bands and do not play any role in the chemistry of the materials
     exclude_semicore = tl.Bool(allow_none=True, default_value=True)
+    scan_pdwf_parameter = tl.Bool(allow_none=True, default_value=False)
     plot_wannier_functions = tl.Bool(allow_none=True, default_value=False)
     number_of_disproj_max = tl.Int(allow_none=True, default_value=15)
     number_of_disproj_min = tl.Int(allow_none=True, default_value=2)
@@ -48,6 +49,7 @@ class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
             'frozen_type': self.frozen_type,
             'energy_window_input': self.energy_window_input,
             'compute_fermi_surface': self.compute_fermi_surface,
+            'scan_pdwf_parameter': self.scan_pdwf_parameter,
         }
         if self.compute_fermi_surface:
             state |= {
@@ -77,3 +79,4 @@ class ConfigurationSettingsModel(ConfigurationSettingsModel, HasInputStructure):
         self.dhva_starting_phi = parameters.get('dHvA_frequencies_parameters', {}).get('starting_phi', 0.0)
         self.dhva_starting_theta = parameters.get('dHvA_frequencies_parameters', {}).get('starting_theta', 90.0)
         self.dhva_num_rotation = parameters.get('dHvA_frequencies_parameters', {}).get('num_rotation', 90)
+        self.scan_pdwf_parameter = parameters.get('scan_pdwf_parameter', False)
