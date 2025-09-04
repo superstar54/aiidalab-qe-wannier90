@@ -9,6 +9,8 @@ from aiida_wannier90_workflows.utils.workflows.builder.setter import set_paralle
 from aiida_pythonjob.launch import prepare_pythonjob_inputs
 from aiida_pythonjob import PythonJob
 from .utils import process_cube_files
+from typing import Any
+
 class QeAppWannier90BandsWorkChain(WorkChain):
     """Workchain to run a bands calculation with Quantum ESPRESSO and Wannier90."""
 
@@ -220,7 +222,7 @@ class QeAppWannier90BandsWorkChain(WorkChain):
         inputs = prepare_pythonjob_inputs(
             process_cube_files,
             code = self.inputs.codes['python'],
-            outputs_spec=spec.namespace(atoms=any, parameters=dict, mesh_data=spec.dynamic(any)),
+            outputs_spec=spec.namespace(atoms=Any, parameters=dict, mesh_data=spec.dynamic(Any)),
             parent_folder=workchain.outputs.wannier90_plot.remote_folder,
             computer=workchain.inputs.wannier90.wannier90.code.computer,
             register_pickle_by_value=True,
