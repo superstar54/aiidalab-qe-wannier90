@@ -64,6 +64,7 @@ def process_xsf_file(folder: orm.FolderData, prefix: str = '', isovalue: float =
         mesh_data[f'{key}_negative_faces'] = faces_neg
         data['mesh_data'] = mesh_data
     except Exception as e:
-        data[key] = {'error': f'Failed to process file {filename}'}
+        print(f'Error processing xsf file {filename}: {e}')
+        return None
 
     return data

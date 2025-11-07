@@ -146,13 +146,18 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
             value=False,
             description='Show supercell',
         )
-
+        self.switch_supercell.observe(self._on_switch_supercell_change, names='value')
+        self.root_process_node = self._model.fetch_process_node()
+        self.wannier90_plot_retrieved = self.root_process_node.outputs.wannier90.wannier90_bands.wannier90_plot.retrieved
+        filename = f'aiida_{int(1):05d}.xsf'
+        self.download_xsf = ipw.HTML('No wannier function are selected for download.')
         # Isosurface
         self.isosurface_data = {}
         structure_viewer_section = ipw.VBox([
             ipw.HTML('<h3>Wannier functions in real space</h3>'),
             self.isovalue,
             self.switch_supercell,
+            self.download_xsf,
             self.structure_viewer,
         ], layout=ipw.Layout(width='80%', margin='10px 0'))
 
@@ -228,8 +233,12 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
             return
 
         self._plot_wannier_function()
+        self.download_xsf.value = create_download_link(
+            self.wannier90_plot_retrieved, f'aiida_{int(id):05d}.xsf',
+            description=f'Download the Wannier function xsf file for WF id={id}'
+        ).value
 
-    def _plot_wannier_function(self, isovalue=None, supercell=False):
+    def _plot_wannier_function(self, isovalue=None):
         """Plot the Wannier function corresponding to the selected row in the table."""
 
         # Get center for the selected row
@@ -253,17 +262,21 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         self.structure_viewer.avr.selected_atoms_indices = indices.tolist()
 
         key = f'aiida_{int(id):05d}'
-
-        root = self._model.fetch_process_node()
-        retrieved = root.outputs.wannier90.wannier90_bands.wannier90_plot.retrieved
+        # Check if the xsf file exists in the retrieved folder
+        if f'{key}.xsf' not in self.wannier90_plot_retrieved.list_object_names():
+            return
 
         if key not in self.isosurface_data:
-            data = process_xsf_file(folder=retrieved, prefix=key)
+            data = process_xsf_file(folder=self.wannier90_plot_retrieved, prefix=key)
+            if data is None:
+                return
             self.isosurface_data[key] = data
             self.isovalue.value = self.isosurface_data[key].get('isovalue', 0.1)
 
         if isovalue and isovalue != self.isosurface_data[key].get('isovalue', None):
-            data = process_xsf_file(folder=retrieved, prefix=key, isovalue=isovalue)
+            data = process_xsf_file(folder=self.wannier90_plot_retrieved, prefix=key, isovalue=isovalue)
+            if data is None:
+                return
             self.isosurface_data[key] = data
 
         if key in self.isosurface_data:
@@ -291,3 +304,12 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         self._plot_wannier_function(
             isovalue=change['new']
         )
+
+    def _on_switch_supercell_change(self, change):
+        """Handle supercell switch change event."""
+        if change['new']:
+            self.structure_viewer.avr.boundary = [[-1.05, 2.05], [-1.05, 2.05], [-1.05, 2.05]]
+        else:
+            self.structure_viewer.avr.boundary = [[-0.05, 1.05], [-0.05, 1.05], [-0.05, 1.05]]
+
+        self.structure_viewer.avr.draw()
