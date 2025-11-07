@@ -55,6 +55,8 @@ def get_builder(codes, structure, parameters, **kwargs):
     parallelization = {
         'num_machines': codes['pw']['nodes'],
         'num_mpiprocs_per_machine': codes['pw']['ntasks_per_node'],
+        'npool': codes['pw']['parallelization']['npool'],
+        'max_wallclock_seconds': codes['pw']['max_wallclock_seconds'],
     }
     builder = QeAppWannier90BandsWorkChain.get_builder_from_protocol(
         codes=all_codes,
