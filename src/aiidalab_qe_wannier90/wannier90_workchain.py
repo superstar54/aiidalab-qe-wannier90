@@ -6,6 +6,7 @@ from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkCh
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_skeaf.workflows import SkeafWorkChain
 from aiida_wannier90_workflows.utils.workflows.builder.setter import set_parallelization
+from aiidalab_qe.utils import enable_pencil_decomposition
 class QeAppWannier90BandsWorkChain(WorkChain):
     """Workchain to run a bands calculation with Quantum ESPRESSO and Wannier90."""
 
@@ -117,6 +118,8 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             set_parallelization(
                 builder, self.inputs.parallelization.get_dict(), process_class=PwBandsWorkChain
             )
+        enable_pencil_decomposition(builder.scf.pw)
+        enable_pencil_decomposition(builder.bands.pw)
         node = self.submit(builder)
         self.report(f'submitting `WorkChain` <PK={node.pk}>')
         self.to_context(**{'pw_bands': node})
@@ -183,6 +186,8 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             builder.wannier90.wannier90.metadata.options.additional_retrieve_list = [
                 '*.xsf',
             ]
+        enable_pencil_decomposition(builder.nscf.pw)
+        # enable_pencil_decomposition(builder.projwfc)
         node = self.submit(builder)
         self.report(f'submitting `WorkChain` <PK={node.pk}>')
         self.to_context(**{'wannier90_bands': node})
