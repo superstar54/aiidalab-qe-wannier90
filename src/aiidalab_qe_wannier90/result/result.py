@@ -11,6 +11,7 @@ import plotly.express as px
 from weas_widget import WeasWidget
 import ast
 import numpy as np
+from ..utils import process_xsf_file
 
 # Define a threshold for considering atoms "almost equally distant"
 DISTANCE_THRESHOLD = 0.01
@@ -132,14 +133,28 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         self.structure_viewer.avr.model_style = 1
         self.structure_viewer.avr.color_type = 'VESTA'
         self.structure_viewer.avr.boundary = [[-0.05, 1.05], [-0.05, 1.05], [-0.05, 1.05]]
+        self.isovalue = ipw.FloatSlider(
+            value=0.1,
+            min=0.01,
+            max=1.0,
+            step=0.01,
+            description='Isovalue:',
+            continuous_update=False,
+        )
+        self.isovalue.observe(self._on_isovalue_change, names='value')
+        self.switch_supercell = ipw.Checkbox(
+            value=False,
+            description='Show supercell',
+        )
 
         # Isosurface
-        self.isosurface_data = self._model.get_isosurface() or {'parameters': {}, 'mesh_data': {}}
-
+        self.isosurface_data = {}
         structure_viewer_section = ipw.VBox([
-            ipw.HTML('<h3>Structure</h3>'),
+            ipw.HTML('<h3>Wannier functions in real space</h3>'),
+            self.isovalue,
+            self.switch_supercell,
             self.structure_viewer,
-        ], layout=ipw.Layout(width='50%', margin='10px 0'))
+        ], layout=ipw.Layout(width='80%', margin='10px 0'))
 
         # Wannier centers and spreads table
         self.table = TableWidget(style={'margin-top': '10px'})
@@ -149,13 +164,13 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         )
         self.table.observe(self.on_single_row_select, 'selectedRowId')
         self.table_description = ipw.HTML(
-            'Click on a table row to visualize on the right the corresponding Wannier function in real space.'
+            'Click on a table row to visualize on the bottom the corresponding Wannier function in real space.'
         )
         table_section = ipw.VBox([
             ipw.HTML('<h3>Wannier centers and spreads</h3>'),
             self.table_description,
             self.table
-        ], layout=ipw.Layout(width='50%', margin='10px 0'))
+        ])
 
         self.skeaf_container = ipw.VBox([
             ipw.HTML('<h2>Fermi surface</h2>'),
@@ -196,7 +211,8 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
                 wannier90_outputs_parameters,
                 bands_distance_warning_widget if show_bands_distance_warning else ipw.HTML(''),
                 ipw.HBox([self.plot_omega_is, self.plot_omega_tots]),
-                ipw.HBox([structure_viewer_section, table_section]),
+                table_section,
+                structure_viewer_section,
             ]),
             self.skeaf_container,
             ipw.VBox([
@@ -205,12 +221,19 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
             ]),
         ]
 
+
     def on_single_row_select(self, change):
         id = change.get('new')
         if id is None:
             return
 
+        self._plot_wannier_function()
+
+    def _plot_wannier_function(self, isovalue=None, supercell=False):
+        """Plot the Wannier function corresponding to the selected row in the table."""
+
         # Get center for the selected row
+        id = self.table.selectedRowId
         try:
             center_str = next(row['centers_final'] for row in self.table.data if row['id'] == id)
             center = ast.literal_eval(center_str)
@@ -230,16 +253,26 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
         self.structure_viewer.avr.selected_atoms_indices = indices.tolist()
 
         key = f'aiida_{int(id):05d}'
-        data = []
 
-        params = self.isosurface_data.get('parameters', {})
-        mesh = self.isosurface_data.get('mesh_data', {})
+        root = self._model.fetch_process_node()
+        retrieved = root.outputs.wannier90.wannier90_bands.wannier90_plot.retrieved
 
-        if key in params and 'isovalue' in params[key]:
+        if key not in self.isosurface_data:
+            data = process_xsf_file(folder=retrieved, prefix=key)
+            self.isosurface_data[key] = data
+            self.isovalue.value = self.isosurface_data[key].get('isovalue', 0.1)
+
+        if isovalue and isovalue != self.isosurface_data[key].get('isovalue', None):
+            data = process_xsf_file(folder=retrieved, prefix=key, isovalue=isovalue)
+            self.isosurface_data[key] = data
+
+        if key in self.isosurface_data:
+            mesh = self.isosurface_data[key].get('mesh_data', {})
+            data = []
             for item in ['positive', 'negative']:
                 try:
-                    vertices = mesh[f'{key}_{item}_vertices'].value.tolist()
-                    faces = mesh[f'{key}_{item}_faces'].value.tolist()
+                    vertices = mesh[f'{key}_{item}_vertices'].tolist()
+                    faces = mesh[f'{key}_{item}_faces'].tolist()
                 except KeyError:
                     continue
                 data.append({
@@ -252,3 +285,9 @@ class Wannier90ResultsPanel(ResultsPanel[Wannier90ResultsModel]):
                 })
 
         self.structure_viewer.any_mesh.settings = data
+
+    def _on_isovalue_change(self, change):
+        """Handle isovalue change event."""
+        self._plot_wannier_function(
+            isovalue=change['new']
+        )

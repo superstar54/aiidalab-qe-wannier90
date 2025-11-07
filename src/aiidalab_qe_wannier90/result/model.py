@@ -85,16 +85,6 @@ class Wannier90ResultsModel(ResultsModel):
         wannier90_bands['band_structure'] = outputs.wannier90_bands.band_structure
         return pw_bands, wannier90_bands
 
-    def get_isosurface(self) -> dict:
-        outputs = self._get_child_outputs()
-        if 'generate_isosurface' not in outputs:
-            return None
-        atoms = outputs.generate_isosurface.atoms.value
-        parameters = outputs.generate_isosurface.parameters.get_dict()
-        mesh_data = outputs.generate_isosurface.mesh_data
-
-        return {'atoms': atoms, 'parameters': parameters, 'mesh_data': mesh_data}
-
     def get_skeaf(self) -> dict:
         outputs = self._get_child_outputs()
         if 'skeaf' not in outputs:

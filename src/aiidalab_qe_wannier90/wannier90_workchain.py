@@ -6,9 +6,6 @@ from aiida_wannier90_workflows.workflows.optimize import Wannier90OptimizeWorkCh
 from aiida_quantumespresso.workflows.pw.bands import PwBandsWorkChain
 from aiida_skeaf.workflows import SkeafWorkChain
 from aiida_wannier90_workflows.utils.workflows.builder.setter import set_parallelization
-from aiida_pythonjob.launch import prepare_pythonjob_inputs
-from aiida_pythonjob import PythonJob
-from .utils import process_xsf_files
 class QeAppWannier90BandsWorkChain(WorkChain):
     """Workchain to run a bands calculation with Quantum ESPRESSO and Wannier90."""
 
@@ -53,10 +50,6 @@ class QeAppWannier90BandsWorkChain(WorkChain):
                      cls.inspect_pw_bands,
                      cls.run_optimize,
                      cls.inspect_optimize,
-                     if_(cls.should_run_generate_isosurface)(
-                         cls.generate_isosurface,
-                         cls.inspect_generate_isosurface
-                     ),
                      if_(cls.should_run_skeaf)(
                          cls.run_skeaf,
                          cls.inspect_skeaf
@@ -185,6 +178,11 @@ class QeAppWannier90BandsWorkChain(WorkChain):
             set_parallelization(
                 builder, self.inputs.parallelization.get_dict(), process_class=Wannier90BandsWorkChain
             )
+        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
+        if kwargs.get('plot_wannier_functions', False):
+            builder.wannier90.wannier90.metadata.options.additional_retrieve_list = [
+                '*.xsf',
+            ]
         node = self.submit(builder)
         self.report(f'submitting `WorkChain` <PK={node.pk}>')
         self.to_context(**{'wannier90_bands': node})
@@ -203,42 +201,6 @@ class QeAppWannier90BandsWorkChain(WorkChain):
                 )
             )
             self.report('Optimize workchain completed successfully')
-
-    def should_run_generate_isosurface(self):
-        kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}
-        return kwargs.get('plot_wannier_functions', False)
-
-    def generate_isosurface(self):
-        """Plot the results"""
-
-        workchain = self.ctx['wannier90_bands']
-        inputs = prepare_pythonjob_inputs(
-            process_xsf_files,
-            code = self.inputs.codes['python'],
-            output_ports=[{'name': 'atoms'},
-                      {'name': 'parameters'},
-                      {'name': 'mesh_data', 'identifier': 'namespace'},
-                      ],
-            parent_folder=workchain.outputs.wannier90_plot.remote_folder,
-            computer=workchain.inputs.wannier90.wannier90.code.computer,
-            register_pickle_by_value=True,
-        )
-        node = self.submit(PythonJob, **inputs)
-        self.report(f'submitting `PythonJob` <PK={node.pk}>')
-        self.to_context(**{'generate_isosurface': node})
-
-    def inspect_generate_isosurface(self):
-        """Inspect the results of the generate_isosurface"""
-        workchain = self.ctx['generate_isosurface']
-
-        if not workchain.is_finished_ok:
-            self.report('Plot workchain failed')
-            return self.exit_codes.ERROR_WORKCHAIN_FAILED
-        else:
-            self.out('generate_isosurface.atoms', workchain.outputs.atoms)
-            self.out('generate_isosurface.parameters', workchain.outputs.parameters)
-            self.out('generate_isosurface.mesh_data', workchain.outputs.mesh_data)
-            self.report('Plot wf completed successfully')
 
     def should_run_skeaf(self):
         kwargs = self.inputs.kwargs if 'kwargs' in self.inputs else {}

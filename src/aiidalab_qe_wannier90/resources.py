@@ -37,11 +37,6 @@ class ResourceSettingsModel(PluginResourceSettingsModel):
                     description='wannier90.x',
                     default_calc_job_plugin='wannier90.wannier90',
                 ),
-                'python': CodeModel(
-                    name='python',
-                    description='Python code for isosurface calculation',
-                    default_calc_job_plugin='pythonjob.pythonjob',
-                ),
                 'skeaf': CodeModel(
                     name='skeaf_v1p3p0_r149',
                     description='skeaf_v1p3p0_r149',

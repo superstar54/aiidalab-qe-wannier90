@@ -32,8 +32,6 @@ def get_builder(codes, structure, parameters, **kwargs):
                 'projwfc': codes.get('projwfc')['code'],
                 'wannier90': codes.get('wannier90')['code']
             }
-    if plot_wannier_functions:
-        all_codes['python'] = codes.get('python')['code']
     if compute_dhva_frequencies:
         all_codes['skeaf'] = codes.get('skeaf')['code']
         all_codes['wan2skeaf'] = codes.get('wan2skeaf')['code']
