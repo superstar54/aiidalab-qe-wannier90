@@ -80,7 +80,7 @@ class ConfigurationSettingPanel(
         )
         self.retrieve_matrices = ipw.Checkbox(
             value=self._model.retrieve_matrices,
-            description='Retrieve Hamiltonian',
+            description='Retrieve ".amn", ".mmn", ".eig", ".chk" and ".spn" files)',
             style={'description_width': 'initial'},
         )
         ipw.link(
@@ -335,6 +335,7 @@ class ConfigurationSettingPanel(
             self.exclude_semicore,
             self.plot_wannier_functions,
             self.retrieve_hamiltonian,
+            self.retrieve_matrices,
             self.compute_fermi_surface,
             self.params_fermi_surface_vbox,
             self.params_dhva_freqs_vbox,
